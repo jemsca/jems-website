@@ -31,6 +31,11 @@
 (function () {
   "use strict";
 
+  window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
+  window.jemsWebsiteCapabilities.onhbTreasurer = Object.freeze([
+    "view_outstanding_payments_and_refunds",
+  ]);
+
   var CONFIG = {
     list: "Payments",
     registrationList: "Registration",

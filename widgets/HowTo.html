@@ -96,6 +96,14 @@
 
 <script>
 (function(){
+  window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
+  window.jemsWebsiteCapabilities.onhbHowTo = Object.freeze([
+    "load_howto_markdown",
+    "render_howto_markdown",
+    "filter_howto_table_of_contents",
+    "reload_howto_markdown",
+  ]);
+
   var CONFIG = {
     // Server-relative path (under this site) where Publish-HowTo.ps1 puts the file.
     mdPath: "SiteAssets/Docs/How-To.md",

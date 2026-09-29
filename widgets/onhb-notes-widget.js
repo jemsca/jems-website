@@ -18,6 +18,13 @@
 (function () {
   "use strict";
 
+  window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
+  window.jemsWebsiteCapabilities.onhbNotes = Object.freeze([
+    "list_sessions",
+    "view_session_member_and_band_notes",
+    "refresh_session_notes",
+  ]);
+
   var CONFIG = {
     lists: { sessions: "Sessions", bands: "Bands", registration: "Registration", members: "Members" },
     // Leader-facing roster view (Migration/Add-RegistrationBandListsView.ps1) -
