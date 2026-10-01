@@ -1,7 +1,10 @@
-"""JSON-stdio handler for hub-routed WordPress page operations."""
+"""JSON-stdio handler for hub-routed website operations (WordPress pages and
+SharePoint Site Assets publishing)."""
 
 from __future__ import annotations
 
+import base64
+import binascii
 import json
 import os
 import re
@@ -10,17 +13,21 @@ from pathlib import Path
 from typing import Optional
 
 WORDPRESS_PROVIDER = Path(__file__).resolve().parent / "providers" / "wordpress"
+SHAREPOINT_PROVIDER = Path(__file__).resolve().parent / "providers" / "sharepoint"
 sys.path.insert(0, str(WORDPRESS_PROVIDER))
+sys.path.insert(0, str(SHAREPOINT_PROVIDER))
 
 from wordpress_pages import WordPressPages  # noqa: E402
+from sharepoint_assets import SharePointAssets  # noqa: E402
 
 TARGET_INSTANCE_ENV = "JEMS_REQUEST_TARGET_INSTANCE"
 CLIENTS_ROOT = Path(os.environ.get("JEMS_CLIENTS_ROOT", "C:/clients"))
 _IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_-]*$")
-_CAPABILITIES = {"website.get_page", "website.update_page"}
+_CAPABILITIES = {"website.get_page", "website.update_page", "website.publish_site_asset"}
 _ENVELOPE_KEYS = {"protocol", "request_id", "client", "caller", "capability", "input"}
 _OPTIONAL_ENVELOPE_KEYS = {"idempotency_key", "route"}
 _FIELD_LIMITS = {"content": 250_000, "title": 512, "slug": 200}
+_MAX_ASSET_BASE64_LENGTH = 5_000_000  # ~3.7 MB decoded; How-To.md-sized documents, not binaries
 
 
 def _response(request_id: Optional[str], status: str, result: object = None,
@@ -39,7 +46,7 @@ def _reject(request_id: Optional[str], code: str, message: str) -> dict:
     })
 
 
-def _build_provider(client: str, instance_name: str) -> WordPressPages:
+def _load_instance_config(client: str, instance_name: str) -> dict:
     jems_path = CLIENTS_ROOT / client / "jems.json"
     try:
         with open(jems_path, encoding="utf-8") as config_file:
@@ -66,9 +73,12 @@ def _build_provider(client: str, instance_name: str) -> WordPressPages:
             config = json.load(config_file)
     except json.JSONDecodeError as error:
         raise ValueError("Website provider configuration contains invalid JSON.") from error
-    if not isinstance(config, dict) or config.get("provider") != "wordpress":
-        raise ValueError("The configured website provider must be wordpress.")
+    if not isinstance(config, dict):
+        raise ValueError("Website provider configuration must be an object.")
+    return config
 
+
+def _build_wordpress_provider(config: dict) -> WordPressPages:
     site = config.get("site")
     pages = config.get("pages")
     username_env = config.get("username_env")
@@ -93,7 +103,47 @@ def _build_provider(client: str, instance_name: str) -> WordPressPages:
     )
 
 
-def _run(capability: str, data: dict, provider: WordPressPages) -> dict:
+def _build_sharepoint_provider(config: dict) -> SharePointAssets:
+    site = config.get("site")
+    tenant_id = config.get("tenant_id")
+    client_id = config.get("client_id")
+    cert_path = config.get("cert_path")
+    assets = config.get("assets")
+    if not isinstance(site, str) or not isinstance(tenant_id, str) or not isinstance(client_id, str):
+        raise ValueError("SharePoint provider configuration requires site, tenant_id, and client_id.")
+    if not isinstance(cert_path, str) or not cert_path:
+        raise ValueError("SharePoint provider configuration requires a cert_path.")
+    expanded_cert_path = os.path.expandvars(os.path.expanduser(cert_path))
+    return SharePointAssets(
+        site=site, tenant_id=tenant_id, client_id=client_id,
+        cert_path=expanded_cert_path, assets=assets,
+    )
+
+
+def _build_provider(client: str, instance_name: str):
+    config = _load_instance_config(client, instance_name)
+    provider_type = config.get("provider")
+    if provider_type == "wordpress":
+        return _build_wordpress_provider(config)
+    if provider_type == "sharepoint":
+        return _build_sharepoint_provider(config)
+    raise ValueError("The configured website provider must be wordpress or sharepoint.")
+
+
+def _run(capability: str, data: dict, provider) -> dict:
+    if capability == "website.publish_site_asset":
+        if set(data) != {"asset_key", "content_base64"}:
+            raise ValueError("Publishing an asset requires an asset_key and content_base64.")
+        asset_key, content_base64 = data["asset_key"], data["content_base64"]
+        if not isinstance(asset_key, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", asset_key):
+            raise ValueError("A valid configured asset key is required.")
+        if not isinstance(content_base64, str) or len(content_base64) > _MAX_ASSET_BASE64_LENGTH:
+            raise ValueError("content_base64 must be a bounded base64 string.")
+        try:
+            content = base64.b64decode(content_base64, validate=True)
+        except binascii.Error as error:
+            raise ValueError("content_base64 is not valid base64.") from error
+        return provider.publish_asset(asset_key, content)
     if capability == "website.get_page":
         if set(data) != {"page_key"}:
             raise ValueError("Page reads require one configured page key.")

@@ -14,6 +14,48 @@ def envelope(input_data, capability="website.get_page", caller="register", clien
     }
 
 
+class TestPublishSiteAsset(unittest.TestCase):
+    def _input(self, **overrides):
+        data = {"asset_key": "how_to_markdown", "content_base64": "IyBIb3cgVG8="}
+        data.update(overrides)
+        return data
+
+    def test_publishes_through_the_configured_provider(self):
+        provider = MagicMock()
+        provider.publish_asset.return_value = {
+            "asset_key": "how_to_markdown", "path": "SiteAssets/Docs/How-To.md",
+        }
+        with patch.object(request_handler, "_build_provider", return_value=provider):
+            response = request_handler.handle_request(
+                envelope(self._input(), capability="website.publish_site_asset"), "onhb_sharepoint",
+            )
+        provider.publish_asset.assert_called_once_with("how_to_markdown", b"# How To")
+        self.assertEqual(response["result"]["path"], "SiteAssets/Docs/How-To.md")
+
+    def test_rejects_an_invalid_asset_key(self):
+        with patch.object(request_handler, "_build_provider"):
+            response = request_handler.handle_request(
+                envelope(self._input(asset_key="Not Valid"), capability="website.publish_site_asset"),
+                "onhb_sharepoint",
+            )
+        self.assertEqual(response["error"]["code"], "OPERATION_REJECTED")
+
+    def test_rejects_invalid_base64(self):
+        with patch.object(request_handler, "_build_provider"):
+            response = request_handler.handle_request(
+                envelope(self._input(content_base64="not-base64!!"), capability="website.publish_site_asset"),
+                "onhb_sharepoint",
+            )
+        self.assertEqual(response["error"]["code"], "OPERATION_REJECTED")
+
+    def test_rejects_unexpected_fields(self):
+        with patch.object(request_handler, "_build_provider"):
+            response = request_handler.handle_request(
+                envelope(self._input(extra=1), capability="website.publish_site_asset"), "onhb_sharepoint",
+            )
+        self.assertEqual(response["error"]["code"], "OPERATION_REJECTED")
+
+
 class TestGetPage(unittest.TestCase):
     def test_reads_through_the_configured_provider(self):
         provider = MagicMock()
@@ -136,6 +178,41 @@ class TestBuildProvider(unittest.TestCase):
                 patch("request_handler.json.load", side_effect=[jems_config, website_config]):
             with self.assertRaises(ValueError):
                 request_handler._build_provider("onhb", "onhb")
+
+    def test_builds_a_sharepoint_provider_from_configuration(self):
+        jems_config = {
+            "tools": {"website": {"instances": {
+                "onhb_sharepoint": {"provider_config": "website-sharepoint.json"},
+            }}},
+        }
+        sharepoint_config = {
+            "provider": "sharepoint",
+            "site": "https://contoso.sharepoint.com/sites/Registration",
+            "tenant_id": "tenant-1", "client_id": "client-1", "cert_path": "C:/certs/cert.pfx",
+            "assets": {"how_to_markdown": {"folder": "SiteAssets/Docs", "filename": "How-To.md"}},
+        }
+        with patch("request_handler.open", create=True), \
+                patch("request_handler.json.load", side_effect=[jems_config, sharepoint_config]):
+            provider = request_handler._build_provider("onhb", "onhb_sharepoint")
+        self.assertEqual(provider.site, sharepoint_config["site"])
+        self.assertEqual(provider.assets, sharepoint_config["assets"])
+
+    def test_rejects_a_sharepoint_provider_missing_a_cert_path(self):
+        jems_config = {
+            "tools": {"website": {"instances": {
+                "onhb_sharepoint": {"provider_config": "website-sharepoint.json"},
+            }}},
+        }
+        sharepoint_config = {
+            "provider": "sharepoint",
+            "site": "https://contoso.sharepoint.com/sites/Registration",
+            "tenant_id": "tenant-1", "client_id": "client-1",
+            "assets": {"how_to_markdown": {"folder": "SiteAssets/Docs", "filename": "How-To.md"}},
+        }
+        with patch("request_handler.open", create=True), \
+                patch("request_handler.json.load", side_effect=[jems_config, sharepoint_config]):
+            with self.assertRaises(ValueError):
+                request_handler._build_provider("onhb", "onhb_sharepoint")
 
     def test_rejects_missing_credential_env_vars(self):
         jems_config = {

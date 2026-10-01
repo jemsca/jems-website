@@ -1,5 +1,34 @@
 # jems-website history
 
+## 2026-10-01 — route the How To SharePoint publish step through #hub (board item #69)
+
+Verifying #28 surfaced that WordPress bands-page updates ARE wired through
+#register, but the SharePoint side (the How To document's Site Assets
+publish) was not - `Ensure-HowToPage.ps1`/`Publish-HowTo.ps1` remained raw,
+hardcoded PnP PowerShell, and the SPFx web part was never ported
+(`widgets/spfx/` was empty). Filed jems-tasks #69 with three subtasks; this is
+the first.
+
+Added `providers/sharepoint/sharepoint_assets.py` (`SharePointAssets`) and
+`Publish-SiteAsset.ps1`, generalized from `Publish-HowTo.ps1` the same way
+`providers/wordpress/wordpress_pages.py` generalized the WordPress side -
+site URL/tenant/client id/cert path move to client configuration
+(`website-sharepoint.json`), asset targets (Site Assets folder + filename)
+are keyed by a logical `asset_key` a caller names, never a raw path.
+`request_handler.py`'s `_build_provider` now dispatches on the configured
+`provider` type (`wordpress` or `sharepoint`); added `website.publish_site_asset`
+to the manifest and the client allowlist (caller: #register, target instance:
+`onhb_sharepoint`). #register's `flows/publish_how_to.py` (new) publishes
+`docs/How To.md` through it, dry-run by default, replacing the formerly
+hand-run `pwsh Publish-HowTo.ps1` step.
+
+Deferred to #69's remaining subtasks: `ensure_howto_page` (the SharePoint
+page + widget web part itself) and the generalized SPFx web part/widget
+config - that web part's property shape is changing (script-src + automatic
+ETag-based cache-busting instead of pasted HTML), so generalizing the page-
+ensure step now would need redoing once that lands. No live SharePoint write
+was run while adding this integration.
+
 ## 2026-10-01 — add tests for the WordPress page provider and #hub handler
 
 `request_handler.py`/`wordpress_pages.py` had no test coverage despite being a

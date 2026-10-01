@@ -1,8 +1,8 @@
 # jems-website
 
-This repository owns website operations for configured clients. ONHB's current implementation includes its browser widgets, a local Markdown publication pipeline, and guarded WordPress page access used by #register's registration-stage workflow.
+This repository owns website operations for configured clients. ONHB's current implementation includes its browser widgets, a local Markdown publication pipeline, guarded WordPress page access used by #register's registration-stage workflow, and a SharePoint Site Assets publisher used by #register's How To publish step.
 
-`widgets\` contains the existing ONHB browser widgets. The `providers\local_markdown\` files form the Markdown-to-Word publication pipeline used by `register\docs\How To.md`. `providers\wordpress\` owns bounded WordPress page reads and writes; it is reached through `request_handler.py` and the #hub capability broker.
+`widgets\` contains the existing ONHB browser widgets. The `providers\local_markdown\` files form the Markdown-to-Word publication pipeline used by `register\docs\How To.md`. `providers\wordpress\` owns bounded WordPress page reads and writes, and `providers\sharepoint\` owns bounded SharePoint Site Assets publishing; both are reached through `request_handler.py` and the #hub capability broker.
 
 ## Actions (jems-tasks, onhb/jems, task #31)
 
