@@ -1,0 +1,19 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx/client-side-web-part-manifest.schema.json",
+  "id": "8f1b6a2e-3c4d-4e9f-9a1b-2d6c7e8f9a0b",
+  "alias": "JemsHtmlWidgetWebPart",
+  "componentType": "WebPart",
+  "version": "*",
+  "manifestVersion": 2,
+  "requiresCustomScript": false,
+  "supportedHosts": ["SharePointWebPart"],
+  "supportsThemeVariants": true,
+  "preconfiguredEntries": [{
+    "groupId": "5c03119e-3074-46fd-976b-c60198311f70",
+    "group": { "default": "Advanced" },
+    "title": { "default": "jems HTML Widget" },
+    "description": { "default": "Loads a Site Assets .js file, auto-refreshed on every publish - no pasted HTML, no version number." },
+    "officeFabricIconFontName": "Embed",
+    "properties": { "scriptPath": "", "containerId": "" }
+  }]
+}

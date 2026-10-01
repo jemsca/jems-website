@@ -1,0 +1,11 @@
+{
+  "name": "SPFx (Node 22)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm install -g gulp-cli yo @microsoft/generator-sharepoint",
+  "forwardPorts": [4321],
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint"]
+    }
+  }
+}

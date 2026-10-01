@@ -25,9 +25,32 @@ Each loaded widget registers its supported view actions in
 The widgets read SharePoint data through the signed-in browser session. They do
 not create or update list items. `onhbBands`/`onhbNotes`/`onhbTreasurer` are
 real, live web parts on the Registration site's actual HOME page (confirmed
-2026-10-01) - not a separate page each. Generalizing them (and the web part
-that hosts them) per #register instance is jems-tasks board item #69's
-remaining two subtasks.
+2026-10-01) - not a separate page each. Generalizing the three widgets
+themselves per #register instance is board item #69's remaining subtask (the
+web part that hosts them is generalized - see "SPFx web part" below).
+
+## SPFx web part
+
+`widgets/spfx/` (2026-10-01, board item #69) generalizes ONHB's own "paste
+your HTML/JS here" SPFx web part (`/dev/onhb/widgets/spfx/`, reference-only -
+AI.md's "never run" rule). `dropin/JemsHtmlWidgetWebPart.ts` replaces the
+pasted-markup property with two plain fields - **Script path** (Site-Assets-
+relative) and **Container id** (the host `<div>` id the configured widget
+`.js` expects) - and reads the script file's own `TimeLastModified` via
+SharePoint's REST API (`GetFileByServerRelativeUrl(...)?$select=
+TimeLastModified`) to build the cache-busting query string automatically. The
+manual "re-upload the .js, then hand-edit `?v=` in the pasted snippet" step
+(onhb-bands-widget.js/onhb-notes-widget.js/onhb-treasurer-widget.js's own
+header comments) no longer exists - publishing a new widget `.js` (e.g.
+through `website.publish_site_asset`, above) is the only step needed.
+
+This folder is source only, not a buildable npm project in this repo - see
+`widgets/spfx/README.md` for the one-time devcontainer build/deploy process,
+same "build once, no Codespace, no rebuild, ever" shape ONHB's own version
+used. No SPFx toolchain exists in this environment to compile/lint the
+TypeScript against real `@microsoft/sp-*` type declarations; it was
+hand-reviewed against the existing, previously-working `BandsSummaryWebPart.ts`
+as a known-good reference, not test-run.
 
 ## Local Markdown actions - two separate pipelines, only one is live
 
@@ -60,8 +83,8 @@ exposes `website.publish_site_asset`, dispatching `_build_provider` on the
 configured `provider` type (`wordpress` or `sharepoint`). Built for the How
 To publish step, but that turned out to be the wrong target (see above) - no
 client currently configures a `sharepoint` website instance. Kept as tested,
-reusable infrastructure for #69's SPFx subtask, which will need to publish a
-widget's `.js`/`config.json` to Site Assets.
+reusable infrastructure for publishing a widget's `.js`/`config.json` to Site
+Assets (see "SPFx web part" below), once a client instance actually needs it.
 
 ## WordPress pages
 

@@ -1,5 +1,21 @@
 # jems-website history
 
+## 2026-10-01 (later) — generalize the SPFx "paste HTML" web part
+
+jems-tasks board item #69, second subtask. Replaced ONHB's pasted-markup
+property (`BandsSummaryWebPart.ts`, `/dev/onhb/widgets/spfx/`, reference-only)
+with `widgets/spfx/dropin/JemsHtmlWidgetWebPart.ts`: two plain properties
+(Script path, Container id) instead of pasted HTML, and automatic cache-
+busting via SharePoint REST's own `TimeLastModified` for the configured
+script file, instead of a hand-edited `?v=` query string in a pasted
+snippet. Added `widgets/spfx/README.md` documenting the one-time devcontainer
+build/deploy (this folder holds source only, not a buildable npm project -
+same shape ONHB's own version used) and `.devcontainer/devcontainer.json`
+(ported as-is). No SPFx toolchain available in this environment to compile
+the TypeScript - hand-reviewed against the known-working original, not
+test-run. Widget generalization itself (the three widgets' hardcoded ONHB
+CONFIG blocks) remains #69's last subtask.
+
 ## 2026-10-01 (corrected same day) — How To's real publish path is #files, not Site Assets
 
 Janet corrected the premise behind the entry below: `Ensure-HowToPage.ps1`/
