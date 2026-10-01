@@ -1,0 +1,42 @@
+{
+  "_comment": [
+    "ONHB's real config for onhb-bands-widget.js. Upload this file as",
+    "config.json alongside onhb-bands-widget.js in the SAME Site Assets",
+    "folder - the widget fetches 'config.json' from its own script directory.",
+    "Field candidate lists try each name in order (internal name, then",
+    "display Title) against the live list - see resolveFields() in the",
+    "widget's own code."
+  ],
+  "lists": { "sessions": "Sessions", "bands": "Bands", "instruments": "Instruments", "registration": "Registration" },
+  "views": { "bandLists": "Band Lists" },
+  "fields": {
+    "sessionYear": ["Year"],
+    "sessionSeason": ["SeasonLookup", "Season"],
+    "sessionMin": ["MinMembers"],
+    "sessionSync": ["LastSynced"],
+    "bandLeader": ["LeaderLookup", "Leader"],
+    "bandLevel": ["BandLevelLookup", "BandLevel", "Level"],
+    "bandType": ["BandTypeLookup", "BandType", "Type"],
+    "bandSession": ["SessionLookup", "Session"],
+    "bandMax": ["MaxMembers"],
+    "bandClosedInstr": ["ClosedInstruments"],
+    "bandClosed": ["BandClosed"],
+    "instrJazzWarn": ["JazzWarn", "Jazz_x0020_Warn"],
+    "instrJazzCap": ["JazzCap", "Jazz_x0020_Cap"],
+    "instrConcertWarn": ["ConcertWarn", "Concert_x0020_Warn"],
+    "instrConcertCap": ["ConcertCap", "Concert_x0020_Cap"],
+    "instrJazz": ["Jazz"],
+    "instrConcert": ["Concert"],
+    "regBand": ["BandLookup", "Band"],
+    "regInstr": ["InstrumentLookup", "Instrument"],
+    "regStatus": ["StatusLookup", "Status"],
+    "regSession": ["SessionLookup", "Session"]
+  },
+  "excludedStatuses": ["Withdrawn", "Duplicate"],
+  "jazzBandType": "Jazz",
+  "collapseToOther": ["Other", "Soprano Sax"],
+  "remap": { "TBD": "Percussion" },
+  "headerOverride": { "Bass Clarinet": "BClar", "Bassoon": "Basso" },
+  "earliestSessionKey": 20243,
+  "fallbackSite": "https://ottawanewhorizons.sharepoint.com/sites/Registration"
+}

@@ -1,86 +1,46 @@
-/* ONHB Registration Summary - widget logic
+/* Band registration summary - widget logic
  * ---------------------------------------------------------------------------
  * Hosted in the site's Site Assets library and loaded as an EXTERNAL script by
- * the ONHB HTML Widget web part. (The tenant CSP blocks inline scripts, but
+ * the jems HTML Widget SPFx web part, which mounts it into the <div> it
+ * creates and passes no other wiring - the widget finds that <div> as its own
+ * <script> tag's parentElement. (The tenant CSP blocks inline scripts, but
  * allows same-origin external scripts loaded by the trusted web part.)
  *
- * To change the widget: edit this file, re-upload it to Site Assets (overwrite),
- * and bump the ?v= number in the paste snippet (BandsSummary.html) to bust the
- * browser cache. No SPFx rebuild.
- *
- * Renders into <div id="onhb-bands-host"> (created by the paste snippet).
+ * GENERALIZED 2026-10-01 (jems-tasks board item #69): list/field/view names
+ * (CONFIG, below) now load from a sibling "config.json" published next to
+ * this .js in Site Assets, instead of being hardcoded here - the one copy of
+ * this file works for ANY #register instance's own SharePoint list naming.
+ * Also replaces the old "re-upload the .js, then hand-edit ?v= in the pasted
+ * snippet" step: the web part reads this file's own SharePoint
+ * TimeLastModified to cache-bust automatically, so publishing a new .js (or a
+ * new config.json) is the only step needed - see widgets/spfx/README.md.
  */
 
 (function () {
   "use strict";
 
   window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
-  window.jemsWebsiteCapabilities.onhbBands = Object.freeze([
+  window.jemsWebsiteCapabilities.bandsSummary = Object.freeze([
     "list_sessions",
     "view_session_band_summary",
     "refresh_session_band_summary",
   ]);
 
-  var CONFIG = {
-    lists: { sessions: "Sessions", bands: "Bands", instruments: "Instruments", registration: "Registration" },
-    // Leader-facing roster view (Migration/Add-RegistrationBandListsView.ps1):
-    // First/Last Name, Email, Instrument, Member Notes only - no admin/payment
-    // columns. Leader links filter into it via FilterField/FilterValue.
-    views: { bandLists: "Band Lists" },
-    fields: {
-      sessionYear:   ["Year"],
-      sessionSeason: ["SeasonLookup", "Season"],
-      sessionMin:    ["MinMembers"],
-      sessionSync:   ["LastSynced"],
-      bandLeader:    ["LeaderLookup", "Leader"],
-      bandLevel:     ["BandLevelLookup", "BandLevel", "Level"],
-      bandType:      ["BandTypeLookup", "BandType", "Type"],
-      bandSession:   ["SessionLookup", "Session"],
-      bandMax:       ["MaxMembers"],
-      // Admin-tracking only (Migration/Add-BandsClosedInstrumentsFields.ps1,
-      // 2026-08-25) - does not touch the live Gravity Forms form, just
-      // records what's closed for the widget to show.
-      bandClosedInstr: ["ClosedInstruments"],
-      bandClosed:    ["BandClosed"],
-      // Per-instrument Warning (yellow)/Cap (red) counts, one pair per band
-      // context (Migration/Add-InstrumentsCapWarningFields.ps1, 2026-08-25) -
-      // fully data-driven, replacing the old hardcoded 6/9 thresholds +
-      // CONFIG.cappedFallback special-casing in code.
-      instrJazzWarn:    ["JazzWarn", "Jazz_x0020_Warn"],
-      instrJazzCap:     ["JazzCap", "Jazz_x0020_Cap"],
-      instrConcertWarn: ["ConcertWarn", "Concert_x0020_Warn"],
-      instrConcertCap:  ["ConcertCap", "Concert_x0020_Cap"],
-      // Non-blank = this instrument applies to this band context (same
-      // fields Migration/Add-BandsClosedInstrumentsFields.ps1's AppliesToAny
-      // filter and Migration/Clear-InstrumentsCapWarnByBandType.ps1 key off
-      // of). Used only to hide inapplicable columns while focused on a band
-      // (2026-08-25) - unfocused view is unchanged, still shows every column.
-      instrJazz:    ["Jazz"],
-      instrConcert: ["Concert"],
-      regBand:       ["BandLookup", "Band"],
-      regInstr:      ["InstrumentLookup", "Instrument"],
-      regStatus:     ["StatusLookup", "Status"],
-      regSession:    ["SessionLookup", "Session"]
-    },
-    excludedStatuses: ["Withdrawn", "Duplicate"],   // count every active registration; Withdrawn/Duplicate excluded (paid or not: Registered/Priority/Pending/Testing all count toward capacity)
-    // The rhythm-section cap only applies to Jazz bands (Band Types = "Jazz").
-    jazzBandType: "Jazz",
-    // Instruments folded into the "Other" column instead of getting their own
-    // (blanks and unknown instruments always fall into Other too).
-    collapseToOther: ["Other", "Soprano Sax"],
-    // Count these instruments under another instrument's column instead of
-    // their own. Temporary: "TBD" registrations should be corrected in the
-    // Registration list; until then they show under Percussion.
-    remap: { "TBD": "Percussion" },
-    // Custom column headers where truncation is ambiguous (e.g. Bass Clarinet /
-    // Bassoon / Bass Guitar all truncate to "Bass"). Names <= 5 chars show in
-    // full; anything else not listed here uses its first 4 letters.
-    headerOverride: { "Bass Clarinet": "BClar", "Bassoon": "Basso" },
-    // Session dropdown starts here. Season rank: Winter=1, Spring=2, Fall=3;
-    // 2024 Fall = 2024*10 + 3.
-    earliestSessionKey: 2024 * 10 + 3,
-    fallbackSite: "https://ottawanewhorizons.sharepoint.com/sites/Registration"
-  };
+  // Populated from this widget's own sibling config.json - see the self-run
+  // section at the bottom of this file. Shape (all instance-specific - see
+  // onhb-bands-config.json for the real ONHB values and field-candidate
+  // reasoning kept there as a "_comment" key, since JSON itself can't carry
+  // comments):
+  //   lists: { sessions, bands, instruments, registration }
+  //   views: { bandLists }
+  //   fields: { sessionYear, sessionSeason, sessionMin, sessionSync,
+  //             bandLeader, bandLevel, bandType, bandSession, bandMax,
+  //             bandClosedInstr, bandClosed, instrJazzWarn, instrJazzCap,
+  //             instrConcertWarn, instrConcertCap, instrJazz, instrConcert,
+  //             regBand, regInstr, regStatus, regSession }
+  //   excludedStatuses, jazzBandType, collapseToOther, remap, headerOverride,
+  //   earliestSessionKey, fallbackSite
+  var CONFIG = null;
 
   var STYLE = '<style>' +
     '.onhb-w{--pink:#f6c6d4;--pink-bd:#e0899f;--yellow:#fdeb9e;--yellow-bd:#e6cf5a;--grey:#d9d9d9;--grey-bd:#9a9a9a;--bd:#d0d0d0;--hd:#2f3b52;--hd-fg:#fff;--stripe:#f6f7f9;' +
@@ -501,8 +461,28 @@
     }).catch(showError);
   }
 
-  // --- self-run: resolve site + host, then render ---
-  var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
-  var host = document.getElementById("onhb-bands-host");
-  if (host) { render(host, site); }
+  // --- self-run: load config.json, then resolve site + host, then render ---
+  // document.currentScript must be captured synchronously, before any
+  // async/then - it's only valid while this script is the one executing.
+  var currentScript = document.currentScript;
+  var host = currentScript ? currentScript.parentElement : document.getElementById("onhb-bands-host");
+  if (host) {
+    if (!currentScript) {
+      // Manually embedded (not loaded by the jems HTML Widget web part) -
+      // no script URL to derive config.json's location from.
+      host.innerHTML = '<div class="err">This widget must be loaded via the jems HTML Widget web part (needs its own script URL to find config.json).</div>';
+    } else {
+      var configUrl = currentScript.src.replace(/[^\/]*(\?.*)?$/, "config.json");
+      fetch(configUrl, { credentials: "include" }).then(function (r) {
+        if (!r.ok) { throw new Error("HTTP " + r.status + " loading config.json"); }
+        return r.json();
+      }).then(function (cfg) {
+        CONFIG = cfg;
+        var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
+        render(host, site);
+      }).catch(function (e) {
+        host.innerHTML = '<div class="err">Could not load widget configuration (config.json).\n\n' + esc(e && e.message ? e.message : e) + '</div>';
+      });
+    }
+  }
 })();

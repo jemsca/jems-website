@@ -1,5 +1,25 @@
 # jems-website history
 
+## 2026-10-01 (latest) — generalize the three widgets per #register instance
+
+jems-tasks board item #69, third and last subtask. `onhb-bands-widget.js`/
+`onhb-notes-widget.js`/`onhb-treasurer-widget.js` each had a hardcoded
+`CONFIG` object naming ONHB's own real SharePoint lists/fields/views. Each
+now fetches `config.json` from its own Site Assets folder (derived from
+`document.currentScript.src`) instead - `onhb-bands-config.json`/
+`onhb-notes-config.json`/`onhb-treasurer-config.json` carry ONHB's own real
+values to publish as `config.json` alongside each widget. Also replaced each
+`getElementById("onhb-<x>-host")` with `document.currentScript.parentElement`
+- the generalized SPFx web part (above) now owns the container, so no widget
+needs a page-specific element id any more. Renamed each widget's
+`window.jemsWebsiteCapabilities` key off the `onhb*` prefix (`bandsSummary`,
+`notes`, `treasurerSummary`) now that the underlying config isn't ONHB-only.
+Added `widgets/README.md` documenting the config.json convention. Syntax-
+checked all three with `node --check`; no live SharePoint page was touched
+(no test harness exists for this browser-only code, same as before this
+change - matches the family's existing precedent of not testing these three
+files).
+
 ## 2026-10-01 (later) — generalize the SPFx "paste HTML" web part
 
 jems-tasks board item #69, second subtask. Replaced ONHB's pasted-markup

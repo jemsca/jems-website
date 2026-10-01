@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "ONHB's real config for onhb-notes-widget.js. Upload this file as",
+    "config.json alongside onhb-notes-widget.js in the SAME Site Assets",
+    "folder - the widget fetches 'config.json' from its own script directory."
+  ],
+  "lists": { "sessions": "Sessions", "bands": "Bands", "registration": "Registration", "members": "Members" },
+  "views": { "bandLists": "Band Lists" },
+  "fields": {
+    "sessionYear": ["Year"],
+    "sessionSeason": ["SeasonLookup", "Season"],
+    "sessionSync": ["LastSynced"],
+    "bandSession": ["SessionLookup", "Session"],
+    "bandNotes": ["Notes"],
+    "regBand": ["BandLookup", "Band"],
+    "regStatus": ["StatusLookup", "Status"],
+    "regSession": ["SessionLookup", "Session"],
+    "regMember": ["MemberLookup", "Member"],
+    "regEntryId": ["EntryID", "Entry ID"],
+    "regMemberNotes": ["MemberNotes", "Member Notes"],
+    "memberLast": ["LastName", "Last Name"]
+  },
+  "excludedStatuses": ["Withdrawn", "Duplicate"],
+  "earliestSessionKey": 20243,
+  "fallbackSite": "https://ottawanewhorizons.sharepoint.com/sites/Registration"
+}

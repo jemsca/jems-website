@@ -1,7 +1,7 @@
-/* ONHB Notes - widget logic
+/* Member and band notes - widget logic
  * ---------------------------------------------------------------------------
  * Two live tables, both session-scoped (same session dropdown pattern as
- * onhb-bands-widget.js, defaulting to the most recent session):
+ * the bands summary widget, defaulting to the most recent session):
  *   1. Member Notes - every Registration row this session (excluding
  *      Withdrawn/Duplicate) with a non-blank Member Notes value - GF's "Any
  *      additional information?" field, a switched-instrument note, etc.
@@ -10,47 +10,39 @@
  *      (Bands.Notes, Migration/Add-BandsNotesField.ps1 - new field, not
  *      backfilled from anything, set directly in the Bands list).
  *
- * Hosted in Site Assets, loaded as an external script by the ONHB HTML Widget
- * web part (tenant CSP blocks inline scripts). Renders into #onhb-notes-host.
- * To change it: edit this file, re-upload to Site Assets, bump ?v= in the
- * paste snippet.
+ * Hosted in Site Assets, loaded as an external script by the jems HTML Widget
+ * SPFx web part, which mounts it into the <div> it creates (found here as
+ * this script's own parentElement - no fixed host id needed).
+ *
+ * GENERALIZED 2026-10-01 (jems-tasks board item #69): list/field/view names
+ * (CONFIG, below) now load from a sibling "config.json" published next to
+ * this .js in Site Assets, instead of being hardcoded here - the one copy of
+ * this file works for ANY #register instance's own SharePoint list naming.
+ * Also replaces the old "re-upload the .js, then hand-edit ?v= in the pasted
+ * snippet" step: the web part reads this file's own SharePoint
+ * TimeLastModified to cache-bust automatically.
  */
 (function () {
   "use strict";
 
   window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
-  window.jemsWebsiteCapabilities.onhbNotes = Object.freeze([
+  window.jemsWebsiteCapabilities.notes = Object.freeze([
     "list_sessions",
     "view_session_member_and_band_notes",
     "refresh_session_notes",
   ]);
 
-  var CONFIG = {
-    lists: { sessions: "Sessions", bands: "Bands", registration: "Registration", members: "Members" },
-    // Leader-facing roster view (Migration/Add-RegistrationBandListsView.ps1) -
-    // reused here for the Band Notes "Band Name" link, same as onhb-bands-widget.js's
-    // leader-cell link (filtered on Band alone).
-    views: { bandLists: "Band Lists" },
-    fields: {
-      sessionYear:   ["Year"],
-      sessionSeason: ["SeasonLookup", "Season"],
-      sessionSync:   ["LastSynced"],
-      bandSession:   ["SessionLookup", "Session"],
-      bandNotes:     ["Notes"],
-      regBand:       ["BandLookup", "Band"],
-      regStatus:     ["StatusLookup", "Status"],
-      regSession:    ["SessionLookup", "Session"],
-      regMember:     ["MemberLookup", "Member"],
-      regEntryId:    ["EntryID", "Entry ID"],
-      regMemberNotes:["MemberNotes", "Member Notes"],
-      memberLast:    ["LastName", "Last Name"]
-    },
-    excludedStatuses: ["Withdrawn", "Duplicate"],   // same rule the Bands widget's counts use
-    // Session dropdown starts here. Season rank: Winter=1, Spring=2, Fall=3;
-    // 2024 Fall = 2024*10 + 3.
-    earliestSessionKey: 2024 * 10 + 3,
-    fallbackSite: "https://ottawanewhorizons.sharepoint.com/sites/Registration"
-  };
+  // Populated from this widget's own sibling config.json - see the self-run
+  // section at the bottom of this file. See onhb-notes-config.json for the
+  // real ONHB values (and field-candidate reasoning kept there in a
+  // "_comment" key, since JSON itself can't carry comments). Shape:
+  //   lists: { sessions, bands, registration, members }
+  //   views: { bandLists }
+  //   fields: { sessionYear, sessionSeason, sessionSync, bandSession,
+  //             bandNotes, regBand, regStatus, regSession, regMember,
+  //             regEntryId, regMemberNotes, memberLast }
+  //   excludedStatuses, earliestSessionKey, fallbackSite
+  var CONFIG = null;
 
   var STYLE = '<style>' +
     '.onhb-n{--bd:#d0d0d0;--hd:#2f3b52;--hd-fg:#fff;--stripe:#f6f7f9;font:13px/1.4 "Segoe UI",Roboto,Arial,sans-serif;color:#1b1b1b;max-width:100%}' +
@@ -387,8 +379,24 @@
     }).catch(showError);
   }
 
-  // --- self-run: resolve site + host, then render ---
-  var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
-  var host = document.getElementById("onhb-notes-host");
-  if (host) { render(host, site); }
+  // --- self-run: load config.json, then resolve site + host, then render ---
+  var currentScript = document.currentScript;
+  var host = currentScript ? currentScript.parentElement : document.getElementById("onhb-notes-host");
+  if (host) {
+    if (!currentScript) {
+      host.innerHTML = '<div class="err">This widget must be loaded via the jems HTML Widget web part (needs its own script URL to find config.json).</div>';
+    } else {
+      var configUrl = currentScript.src.replace(/[^\/]*(\?.*)?$/, "config.json");
+      fetch(configUrl, { credentials: "include" }).then(function (r) {
+        if (!r.ok) { throw new Error("HTTP " + r.status + " loading config.json"); }
+        return r.json();
+      }).then(function (cfg) {
+        CONFIG = cfg;
+        var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
+        render(host, site);
+      }).catch(function (e) {
+        host.innerHTML = '<div class="err">Could not load widget configuration (config.json).\n\n' + esc(e && e.message ? e.message : e) + '</div>';
+      });
+    }
+  }
 })();

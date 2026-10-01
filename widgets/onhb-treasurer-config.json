@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "ONHB's real config for onhb-treasurer-widget.js. Upload this file as",
+    "config.json alongside onhb-treasurer-widget.js in the SAME Site Assets",
+    "folder - the widget fetches 'config.json' from its own script directory."
+  ],
+  "list": "Payments",
+  "registrationList": "Registration",
+  "membersList": "Members",
+  "f": {
+    "payer": "Title", "type": "TransactionType", "method": "PaymentMethod",
+    "status": "PaymentStatus", "amountDue": "AmountDue", "amount": "Amount",
+    "txnId": "TransactionID", "entryId": "EntryID",
+    "member": "MemberLookup"
+  },
+  "reg": { "entryId": "EntryID", "date": "RegDate" },
+  "fallbackSite": "https://ottawanewhorizons.sharepoint.com/sites/Registration"
+}

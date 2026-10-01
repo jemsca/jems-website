@@ -24,33 +24,34 @@
  * Title, which can drift from its actual URL after a rename - same reliable
  * pattern onhb-bands-widget.js already uses for its own list links).
  *
- * Hosted in Site Assets, loaded as an external script by the ONHB HTML Widget
- * web part (tenant CSP blocks inline scripts). Renders into #onhb-treasurer-host.
- * To change it: edit this file, re-upload to Site Assets, bump ?v= in the snippet.
+ * Hosted in Site Assets, loaded as an external script by the jems HTML
+ * Widget SPFx web part, which mounts it into the <div> it creates (found
+ * here as this script's own parentElement - no fixed host id needed).
+ *
+ * GENERALIZED 2026-10-01 (jems-tasks board item #69): list/field names
+ * (CONFIG, below) now load from a sibling "config.json" published next to
+ * this .js in Site Assets, instead of being hardcoded here - the one copy of
+ * this file works for ANY #register instance's own SharePoint list naming.
+ * Also replaces the old "re-upload the .js, then hand-edit ?v= in the
+ * snippet" step: the web part reads this file's own SharePoint
+ * TimeLastModified to cache-bust automatically.
  */
 (function () {
   "use strict";
 
   window.jemsWebsiteCapabilities = window.jemsWebsiteCapabilities || {};
-  window.jemsWebsiteCapabilities.onhbTreasurer = Object.freeze([
+  window.jemsWebsiteCapabilities.treasurerSummary = Object.freeze([
     "view_outstanding_payments_and_refunds",
   ]);
 
-  var CONFIG = {
-    list: "Payments",
-    registrationList: "Registration",
-    membersList: "Members",
-    // Payments list internal field names (created by the Add-Payments*.ps1 scripts)
-    f: {
-      payer: "Title", type: "TransactionType", method: "PaymentMethod",
-      status: "PaymentStatus", amountDue: "AmountDue", amount: "Amount",
-      txnId: "TransactionID", entryId: "EntryID",
-      member: "MemberLookup"
-    },
-    // Registration list fields used only to resolve RegDate per Entry ID
-    reg: { entryId: "EntryID", date: "RegDate" },
-    fallbackSite: "https://ottawanewhorizons.sharepoint.com/sites/Registration"
-  };
+  // Populated from this widget's own sibling config.json - see the self-run
+  // section at the bottom of this file. See onhb-treasurer-config.json for
+  // the real ONHB values. Shape:
+  //   list, registrationList, membersList
+  //   f: { payer, type, method, status, amountDue, amount, txnId, entryId, member }
+  //   reg: { entryId, date }
+  //   fallbackSite
+  var CONFIG = null;
 
   var STYLE = '<style>' +
     '.onhb-t{--bd:#d0d0d0;--hd:#2f3b52;--hd-fg:#fff;--stripe:#f6f7f9;font:13px/1.4 "Segoe UI",Roboto,Arial,sans-serif;color:#1b1b1b;max-width:100%}' +
@@ -227,8 +228,24 @@
     }
   }
 
-  // --- self-run ---
-  var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
-  var host = document.getElementById("onhb-treasurer-host");
-  if (host) { render(host, site); }
+  // --- self-run: load config.json, then resolve site + host, then render ---
+  var currentScript = document.currentScript;
+  var host = currentScript ? currentScript.parentElement : document.getElementById("onhb-treasurer-host");
+  if (host) {
+    if (!currentScript) {
+      host.innerHTML = '<div class="err">This widget must be loaded via the jems HTML Widget web part (needs its own script URL to find config.json).</div>';
+    } else {
+      var configUrl = currentScript.src.replace(/[^\/]*(\?.*)?$/, "config.json");
+      fetch(configUrl, { credentials: "include" }).then(function (r) {
+        if (!r.ok) { throw new Error("HTTP " + r.status + " loading config.json"); }
+        return r.json();
+      }).then(function (cfg) {
+        CONFIG = cfg;
+        var site = (window._spPageContextInfo && window._spPageContextInfo.webAbsoluteUrl) || CONFIG.fallbackSite;
+        render(host, site);
+      }).catch(function (e) {
+        host.innerHTML = '<div class="err">Could not load widget configuration (config.json).\n\n' + esc(e && e.message ? e.message : e) + '</div>';
+      });
+    }
+  }
 })();

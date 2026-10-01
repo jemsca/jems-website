@@ -11,23 +11,43 @@ own docs), not this repo.
 ## Browser widget actions
 
 Each loaded widget registers its supported view actions in
-`window.jemsWebsiteCapabilities`:
+`window.jemsWebsiteCapabilities` (generalized off the `onhb*` prefix
+2026-10-01 - see "Per-instance widget configuration" below for why):
 
 - `onhbHowTo` loads and renders published Markdown, filters the table of
   contents, and reloads the document. **Not the live mechanism** - see "Local
-  Markdown actions" below.
-- `onhbBands` lists sessions, shows a selected session's band summary, and
+  Markdown actions" below. Still ONHB-named/not generalized, since it's
+  unused/reference code, not the live path.
+- `bandsSummary` lists sessions, shows a selected session's band summary, and
   refreshes that summary.
-- `onhbNotes` lists sessions, shows member and band notes for a session, and
+- `notes` lists sessions, shows member and band notes for a session, and
   refreshes those notes.
-- `onhbTreasurer` shows outstanding payments and refunds.
+- `treasurerSummary` shows outstanding payments and refunds.
 
 The widgets read SharePoint data through the signed-in browser session. They do
-not create or update list items. `onhbBands`/`onhbNotes`/`onhbTreasurer` are
+not create or update list items. `bandsSummary`/`notes`/`treasurerSummary` are
 real, live web parts on the Registration site's actual HOME page (confirmed
-2026-10-01) - not a separate page each. Generalizing the three widgets
-themselves per #register instance is board item #69's remaining subtask (the
-web part that hosts them is generalized - see "SPFx web part" below).
+2026-10-01) - not a separate page each.
+
+## Per-instance widget configuration
+
+Board item #69's last subtask (2026-10-01): `onhb-bands-widget.js`,
+`onhb-notes-widget.js`, and `onhb-treasurer-widget.js` each had their
+SharePoint list/field/view names hardcoded in a `CONFIG` object - real
+ONHB-specific names (`"Sessions"`, `"BandLookup"`, lookup-field display-name
+variants), not something any other `#register` instance's own list naming
+would share. Each widget now fetches `config.json` from its OWN Site Assets
+folder (same directory as the widget's own `.js` - derived from
+`document.currentScript.src`, not a hardcoded path) instead of hardcoding
+`CONFIG`; `onhb-bands-config.json`/`onhb-notes-config.json`/
+`onhb-treasurer-config.json` (`widgets/`) carry ONHB's own real values to be
+published as `config.json` alongside each widget's own `.js`. A different
+`#register` instance publishes its own `config.json` with its own list/field
+names - no code change to the widget itself. Also replaced each widget's
+`getElementById("onhb-<x>-host")` with `document.currentScript.parentElement`
+- the SPFx web part (below) creates and owns that container now, so no widget
+needs to agree on a specific element id with its own page's web part
+configuration at all. See `widgets/README.md` for the full convention.
 
 ## SPFx web part
 
@@ -35,8 +55,11 @@ web part that hosts them is generalized - see "SPFx web part" below).
 your HTML/JS here" SPFx web part (`/dev/onhb/widgets/spfx/`, reference-only -
 AI.md's "never run" rule). `dropin/JemsHtmlWidgetWebPart.ts` replaces the
 pasted-markup property with two plain fields - **Script path** (Site-Assets-
-relative) and **Container id** (the host `<div>` id the configured widget
-`.js` expects) - and reads the script file's own `TimeLastModified` via
+relative) and **Container id** (the host `<div>` id a configured widget's
+`.js` expects, for one that still looks itself up by a fixed id - the three
+generalized widgets above no longer need this, since they use their own
+`<script>` tag's `parentElement` instead) - and reads the script file's own
+`TimeLastModified` via
 SharePoint's REST API (`GetFileByServerRelativeUrl(...)?$select=
 TimeLastModified`) to build the cache-busting query string automatically. The
 manual "re-upload the .js, then hand-edit `?v=` in the pasted snippet" step
