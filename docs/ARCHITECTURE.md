@@ -75,26 +75,25 @@ TypeScript against real `@microsoft/sp-*` type declarations; it was
 hand-reviewed against the existing, previously-working `BandsSummaryWebPart.ts`
 as a known-good reference, not test-run.
 
-## Local Markdown actions - two separate pipelines, only one is live
+## Local Markdown actions - unused/reference only
 
-`providers/local_markdown/` carries code for TWO different designs built at
-different times - confirmed 2026-10-01 (Janet) that only the second is the
-real, live mechanism:
+`providers/local_markdown/` now holds only `ensure_howto_page`/
+`publish_howto_markdown` (`Ensure-HowToPage.ps1`/`Publish-HowTo.ps1`/
+`widgets/HowTo.html`) - a live-markdown-rendering SharePoint page + widget,
+publishing raw Markdown to Site Assets. **Never the production path**; kept
+as-is, unrouted, in case it informs future SPFx widget work - not deleted,
+not relied on.
 
-1. **Unused/reference**: `ensure_howto_page`/`publish_howto_markdown`
-   (`Ensure-HowToPage.ps1`/`Publish-HowTo.ps1`/`widgets/HowTo.html`) - a
-   live-markdown-rendering SharePoint page + widget, publishing raw Markdown
-   to Site Assets. Never the production path; kept as-is, unrouted, in case
-   it informs the generalized SPFx widget work (board item #69's other
-   subtasks) - not deleted, not relied on.
-2. **The real path**: `convert_howto_docx` (`parse.js` + `convert_howto.py`)
-   converts `docs/How To.md` to a `.docx`, reusing the CURRENT live
-   `How To.docx` as its style/numbering template. `#register`'s
-   `flows/publish_how_to.py` downloads that template and uploads the
-   regenerated document through `#files`' existing `registration` onedrive
-   instance (Documents/Tech) - see that repo's own docs. This repo's role is
-   only the conversion scripts themselves; no SharePoint-specific code here
-   at all for this path.
+The REAL How To document path (Markdown -> Word -> SharePoint Documents/
+Tech) has no code in this repo at all any more (2026-10-01, board item #69's
+follow-up) - it was never a website-domain operation to begin with. The
+conversion engine (formerly `parse.js`/`convert_howto.py` here) moved to
+`jems-files/conversion/markdown_docx/` as `files.convert_markdown_to_docx`
+(generalized - no document-specific business rule hardcoded, e.g. the
+"Prepare T4A forms" numbered-section name is now a caller parameter), and
+the source document (`How To.md`) moved to `C:\clients\onhb\docs\` as
+client content. `#register`'s `flows/publish_how_to.py` owns the workflow.
+See `jems-files/docs/HISTORY.md` and `jems-register/docs/HISTORY.md`.
 
 ## SharePoint Site Assets (general infrastructure, not yet client-wired)
 

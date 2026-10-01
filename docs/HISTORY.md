@@ -1,6 +1,21 @@
 # jems-website history
 
-## 2026-10-01 (latest) — generalize the three widgets per #register instance
+## 2026-10-01 (latest) — move the How To conversion engine to #files
+
+Janet's own correction: file conversion (Markdown -> Word) belongs in
+`#files`, not this repo - it has no website-domain meaning at all. Removed
+`parse.js`/`marked.min.js`/`convert_howto.py`/`Convert-HowTo.ps1` from
+`providers/local_markdown/` entirely; they're now `jems-files/conversion/
+markdown_docx/` (generalized - `convert_howto.py`'s one remaining ONHB-
+specific rule, a hardcoded "Prepare T4A forms" numbered-section name, is now
+a caller-supplied parameter). `providers/local_markdown/` now holds only the
+unused/reference live-markdown-widget pipeline (`Ensure-HowToPage.ps1`/
+`Publish-HowTo.ps1`/`widgets/HowTo.html`). Also: `How To.md` itself (the
+source document) moved to `C:\clients\onhb\docs\` - it's client content, not
+jems-website or jems-register code. See `jems-files/docs/HISTORY.md` and
+`jems-register/docs/HISTORY.md` for the rest of the migration.
+
+## 2026-10-01 (earlier) — generalize the three widgets per #register instance
 
 jems-tasks board item #69, third and last subtask. `onhb-bands-widget.js`/
 `onhb-notes-widget.js`/`onhb-treasurer-widget.js` each had a hardcoded

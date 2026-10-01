@@ -1,18 +1,34 @@
 # Local Markdown publication provider
 
-This directory contains ONHB's Markdown-to-Word converter and its bundled parser assets. It is the initial implementation of the website-side `local_markdown` provider requested for publishing the registration How To document to SharePoint.
+This directory contains ONHB's SharePoint publication wrappers for a
+live-markdown-rendering widget page. **Not the live mechanism** - see
+`jems-website/docs/ARCHITECTURE.md`'s "Local Markdown actions" section.
+Kept as unused/reference code, in case it informs future SPFx widget work
+(jems-tasks board item #69) - not relied on, not deleted.
 
-The source document now lives at `C:\jems\register\docs\How To.md`. The converter remains deliberately filesystem/template driven and still requires the existing Word document template and SharePoint-synced output path.
+`ensure_howto_page` (`Ensure-HowToPage.ps1`) creates/updates a SharePoint
+page hosting a widget that fetches and renders Markdown live.
+`publish_howto_markdown` (`Publish-HowTo.ps1`) uploads Markdown source to a
+Site Assets folder for that widget to fetch. Both write to SharePoint and
+use ONHB-specific site/page defaults.
 
-`Ensure-HowToPage.ps1` and `Publish-HowTo.ps1` are retained here as the remaining SharePoint publication wrappers. They still contain ONHB-specific site/page assumptions and are source material until website client configuration replaces those literals.
+## The real How To document pipeline
 
-## Actions
+The actual, live How To document path is Markdown -> Word document ->
+SharePoint Documents/Tech - a plain file conversion + upload, not a website
+operation. It moved out of this repo entirely (2026-10-01, board item #69's
+follow-up):
 
-- `convert_howto_docx` — parse Markdown and create a Word document using an existing `.docx` template.
-- `ensure_howto_page` — create or update the ONHB SharePoint How To page and its widget.
-- `publish_howto_markdown` — upload the Markdown source to the configured Site Assets folder (the current script defaults to ONHB's Registration site).
+- The conversion engine (`parse.js`/`convert_howto.py`, formerly here) is
+  now `jems-files/conversion/markdown_docx/` (`markdown_to_docx.py`,
+  generalized - no document-specific business rule hardcoded), exposed as
+  `files.convert_markdown_to_docx` through `#hub`.
+- The source document (`How To.md`) is client content, not jems-website or
+  jems-register code - it now lives at `C:\clients\onhb\docs\How To.md`.
+- `jems-register`'s `flows/publish_how_to.py` owns the workflow: which doc,
+  which template, where it's published, and ONHB's own "Prepare T4A forms"
+  numbered-section rule (passed as a parameter to the generic conversion
+  capability, not hardcoded in it).
 
-The latter two actions write to SharePoint. They are implemented by the
-PowerShell scripts in this directory and require the existing PnP certificate
-authentication setup. Their current ONHB site IDs and page defaults are not
-general client configuration yet.
+See `jems-files/docs/HISTORY.md` and `jems-register/docs/HISTORY.md` for the
+full migration.
