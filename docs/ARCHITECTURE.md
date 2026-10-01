@@ -1,9 +1,12 @@
 # jems-website architecture
 
 `jems-website` owns configured website operations. ONHB's implementation
-contains browser widgets, a local Markdown publication pipeline, a WordPress
-page provider used by #register's registration-stage workflow, and a
-SharePoint Site Assets publisher used by #register's How To publish step.
+contains browser widgets, a local Markdown publication pipeline, and a
+WordPress page provider used by #register's registration-stage workflow.
+The How To document itself (Markdown -> Word -> SharePoint Documents/Tech)
+is NOT a website-domain operation - it's a plain file conversion + upload,
+owned by #register (`flows/publish_how_to.py`) and #files (see those repos'
+own docs), not this repo.
 
 ## Browser widget actions
 
@@ -11,7 +14,8 @@ Each loaded widget registers its supported view actions in
 `window.jemsWebsiteCapabilities`:
 
 - `onhbHowTo` loads and renders published Markdown, filters the table of
-  contents, and reloads the document.
+  contents, and reloads the document. **Not the live mechanism** - see "Local
+  Markdown actions" below.
 - `onhbBands` lists sessions, shows a selected session's band summary, and
   refreshes that summary.
 - `onhbNotes` lists sessions, shows member and band notes for a session, and
@@ -19,33 +23,45 @@ Each loaded widget registers its supported view actions in
 - `onhbTreasurer` shows outstanding payments and refunds.
 
 The widgets read SharePoint data through the signed-in browser session. They do
-not create or update list items.
+not create or update list items. `onhbBands`/`onhbNotes`/`onhbTreasurer` are
+real, live web parts on the Registration site's actual HOME page (confirmed
+2026-10-01) - not a separate page each. Generalizing them (and the web part
+that hosts them) per #register instance is jems-tasks board item #69's
+remaining two subtasks.
 
-## Local Markdown actions
+## Local Markdown actions - two separate pipelines, only one is live
 
-`providers/local_markdown/` implements `convert_howto_docx`,
-`ensure_howto_page`, and `publish_howto_markdown` through its PowerShell
-scripts. `ensure_howto_page` (creating/updating the How To SharePoint page and
-its widget web part) remains unrouted and ONHB-specific - its web part
-property shape is about to change (see "SharePoint Site Assets" below's own
-note on the pending SPFx work, jems-tasks board item #69), so generalizing it
-now would need redoing once that lands.
+`providers/local_markdown/` carries code for TWO different designs built at
+different times - confirmed 2026-10-01 (Janet) that only the second is the
+real, live mechanism:
 
-## SharePoint Site Assets
+1. **Unused/reference**: `ensure_howto_page`/`publish_howto_markdown`
+   (`Ensure-HowToPage.ps1`/`Publish-HowTo.ps1`/`widgets/HowTo.html`) - a
+   live-markdown-rendering SharePoint page + widget, publishing raw Markdown
+   to Site Assets. Never the production path; kept as-is, unrouted, in case
+   it informs the generalized SPFx widget work (board item #69's other
+   subtasks) - not deleted, not relied on.
+2. **The real path**: `convert_howto_docx` (`parse.js` + `convert_howto.py`)
+   converts `docs/How To.md` to a `.docx`, reusing the CURRENT live
+   `How To.docx` as its style/numbering template. `#register`'s
+   `flows/publish_how_to.py` downloads that template and uploads the
+   regenerated document through `#files`' existing `registration` onedrive
+   instance (Documents/Tech) - see that repo's own docs. This repo's role is
+   only the conversion scripts themselves; no SharePoint-specific code here
+   at all for this path.
 
-`providers/sharepoint/sharepoint_assets.py` (`SharePointAssets`, 2026-10-01,
-board item #69) publishes one configured named asset's bytes into a
-SharePoint site's Site Assets library, via `Publish-SiteAsset.ps1` - PnP
-certificate auth, generalized from ONHB's own `Publish-HowTo.ps1` (now
-retained in `providers/local_markdown/` as the un-generalized original). Asset
-keys and their Site Assets folder/filename live in the instance's own provider
-config (e.g. `website-sharepoint.json`'s `assets` map) - a caller names a
-configured key, never a raw path. `request_handler.py` exposes
-`website.publish_site_asset` to #register through #hub; #register's
-`flows/publish_how_to.py` uses it to publish `docs/How To.md` under the
-`how_to_markdown` key, replacing the formerly-manual `pwsh Publish-HowTo.ps1`
-step. Creating/updating the SharePoint PAGE that hosts a widget
-(`ensure_howto_page`, above) is a separate, not-yet-generalized step.
+## SharePoint Site Assets (general infrastructure, not yet client-wired)
+
+`providers/sharepoint/sharepoint_assets.py` (`SharePointAssets`, 2026-10-01)
+publishes one configured named asset's bytes into a SharePoint site's Site
+Assets library, via `Publish-SiteAsset.ps1` - PnP certificate auth,
+generalized from ONHB's own `Publish-HowTo.ps1`. `request_handler.py`
+exposes `website.publish_site_asset`, dispatching `_build_provider` on the
+configured `provider` type (`wordpress` or `sharepoint`). Built for the How
+To publish step, but that turned out to be the wrong target (see above) - no
+client currently configures a `sharepoint` website instance. Kept as tested,
+reusable infrastructure for #69's SPFx subtask, which will need to publish a
+widget's `.js`/`config.json` to Site Assets.
 
 ## WordPress pages
 

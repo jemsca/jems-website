@@ -1,6 +1,30 @@
 # jems-website history
 
-## 2026-10-01 — route the How To SharePoint publish step through #hub (board item #69)
+## 2026-10-01 (corrected same day) — How To's real publish path is #files, not Site Assets
+
+Janet corrected the premise behind the entry below: `Ensure-HowToPage.ps1`/
+`Publish-HowTo.ps1`/`HowTo.html` (live-markdown-render widget, publishing to
+Site Assets) were never the real production mechanism for How To - that code
+is unused/reference material, kept as-is for now (it may inform the
+generalized SPFx widget work in #69's other subtasks). The REAL, live path,
+confirmed against the actual site: `docs/How To.md` -> Word doc (via the
+existing `convert_howto.py`/`parse.js` pipeline in `providers/local_markdown/`)
+-> uploaded to the Registration SharePoint site's **Documents/Tech** folder -
+a plain file upload, not a Site Assets publish for a widget to render.
+
+That upload target is the SAME Documents drive `#files`' existing
+`registration` onedrive instance already points at - no SharePoint-specific
+code needed in this repo for it at all. Removed the `onhb_sharepoint`
+website instance, the `website.publish_site_asset` client route, and
+`website-sharepoint.json` (none had a real consumer). `website.publish_site_asset`
+and `providers/sharepoint/sharepoint_assets.py` stay in this repo as general,
+tested Site Assets-publish infrastructure - genuinely reusable once #69's SPFx
+subtask needs to publish a widget's `.js`/`config.json` there - just not wired
+to any client instance until that real need exists. See `jems-register/docs/
+HISTORY.md` and `jems-files/docs/HISTORY.md` for the actual How To migration
+(`flows/publish_how_to.py`, `files.download_file`).
+
+## 2026-10-01 — route the How To SharePoint publish step through #hub (board item #69) [superseded above]
 
 Verifying #28 surfaced that WordPress bands-page updates ARE wired through
 #register, but the SharePoint side (the How To document's Site Assets
@@ -22,12 +46,10 @@ to the manifest and the client allowlist (caller: #register, target instance:
 `docs/How To.md` through it, dry-run by default, replacing the formerly
 hand-run `pwsh Publish-HowTo.ps1` step.
 
-Deferred to #69's remaining subtasks: `ensure_howto_page` (the SharePoint
-page + widget web part itself) and the generalized SPFx web part/widget
-config - that web part's property shape is changing (script-src + automatic
-ETag-based cache-busting instead of pasted HTML), so generalizing the page-
-ensure step now would need redoing once that lands. No live SharePoint write
-was run while adding this integration.
+**Superseded same day** - see the entry above: `publish_how_to.py` now goes
+through `#files` instead, and the `onhb_sharepoint` client wiring described
+here was removed. The `providers/sharepoint/` CODE this entry added is kept
+(see above), just not client-wired this way.
 
 ## 2026-10-01 — add tests for the WordPress page provider and #hub handler
 
