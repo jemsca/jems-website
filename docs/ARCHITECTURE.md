@@ -1,7 +1,8 @@
 # jems-website architecture
 
-`jems-website` currently contains ONHB browser widgets and a local Markdown
-publication pipeline. It is not yet a configurable, standalone website client.
+`jems-website` owns configured website operations. ONHB's implementation
+contains browser widgets, a local Markdown publication pipeline, and a
+WordPress page provider used by #register's registration-stage workflow.
 
 ## Browser widget actions
 
@@ -26,3 +27,21 @@ not create or update list items.
 scripts. The page and publish actions write to SharePoint. Their current site,
 authentication, and page defaults are ONHB-specific; client configuration has
 not replaced those assumptions yet.
+
+## WordPress pages
+
+`providers/wordpress/wordpress_pages.py` reads and updates only WordPress pages
+named in the client's `website.json` provider configuration. It returns raw
+editable content, title, and slug; updates are limited to those three fields.
+The provider uses the configured WordPress Application Password, sends a
+self-identifying User-Agent, applies bounded retries to reads, and never retries
+a write whose outcome may be unknown.
+
+`request_handler.py` exposes `website.get_page` and `website.update_page` to
+#register through #hub. The client allowlist maps logical page keys to the
+configured home page and test/late-registration page; callers cannot choose a
+post ID, post type, credential, or WordPress field outside the bounded set.
+Updates require an explicit `commit` boolean and return a preview when false.
+ONHB's stage selection, HTML generation, and dry-run/`--commit` workflow remain
+in #register. That workflow also continues to own Gravity Forms changes through
+#forms and band/table changes through their existing owners.

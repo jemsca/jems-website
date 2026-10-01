@@ -1,8 +1,8 @@
 # jems-website
 
-This is the initial website destination surface for ONHB widgets and local Markdown publication. It is not yet a standalone initialized Git repository; the files here are the first parity port requested from the ONHB repository.
+This repository owns website operations for configured clients. ONHB's current implementation includes its browser widgets, a local Markdown publication pipeline, and guarded WordPress page access used by #register's registration-stage workflow.
 
-`widgets\` contains the existing ONHB browser widgets. The `providers\local_markdown\` files form the Markdown-to-Word publication pipeline used by `register\docs\How To.md`; they remain source-compatible until the website tool has its own configuration and deployment boundary.
+`widgets\` contains the existing ONHB browser widgets. The `providers\local_markdown\` files form the Markdown-to-Word publication pipeline used by `register\docs\How To.md`. `providers\wordpress\` owns bounded WordPress page reads and writes; it is reached through `request_handler.py` and the #hub capability broker.
 
 ## Actions (jems-tasks, onhb/jems, task #31)
 
